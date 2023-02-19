@@ -45,6 +45,13 @@ const BlogSchema = new Schema(
     },
     {
         timestamps: true,
+        toJSON: {
+            transform: function (doc, ret) {
+                ret.id = ret._id.toString();
+                delete ret._id;
+                delete ret.__v;
+            },
+        },
     },
 )
 
@@ -75,10 +82,16 @@ BlogSchema.pre('save', async function(next) {
 
 })
 
-BlogSchema.post('save', async function () {
+async function indexBlog(blog) {
+    const { id, title, content, slug } = blog;
+    const body = { id, title, content, slug };
+    await esClient.index({ index: 'blogs', body });
+}
 
+BlogSchema.post('save', async function (doc) {
+    await indexBlog(doc);
 
-    console.log(this);
+/*    console.log(this);
    const result=  await esClient.index({
         index: 'blogs',
         id: this._id,
@@ -88,9 +101,11 @@ BlogSchema.post('save', async function () {
             category: this.category,
             slug: this.slug,
         },
-    });
+    });*/
 
 });
+
+
 
 //BlogSchema.plugin(mongoosePaginate);
 
